@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ضاد — لغة برمجة عربية موحّدة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+__CSS__
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"><span class="brand-mark-glyph">ض</span></span>
+      <div class="brand-text">
+        <span class="brand-title">ضاد</span>
+        <span class="brand-sub">لغة برمجة عربية موحّدة — نسخة أولية للتجربة</span>
+      </div>
+    </div>
+    <div class="toolbar">
+      <label class="examples-label" for="templates-select">القوالب</label>
+      <select id="templates-select" class="examples-select"></select>
+      <button id="clear-btn" class="btn btn-ghost">امسح المخرجات</button>
+      <button id="run-btn" class="btn btn-primary">
+        <span class="btn-icon" aria-hidden="true">◀</span>
+        شغّل
+      </button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="pane pane-editor">
+      <div class="pane-head">
+        <span class="pane-title">الشيفرة المصدرية</span>
+        <span class="pane-hint">Ctrl + Enter للتشغيل · Tab للإكمال</span>
+      </div>
+      <div class="editor-wrap" id="editor-wrap">
+        <div id="gutter" class="gutter">1</div>
+        <pre id="code-highlight" class="code-highlight" aria-hidden="true"><code id="code-highlight-code"></code></pre>
+        <textarea id="code-area" class="code-area code-area-gutter" spellcheck="false" dir="rtl" autocapitalize="off" autocomplete="off" wrap="off"></textarea>
+        <ul id="ac-list" class="ac-list" hidden></ul>
+      </div>
+    </section>
+
+    <section class="pane pane-results">
+      <div class="pane-head tabs">
+        <button class="tab-btn active" data-tab="output">المخرجات</button>
+        <button class="tab-btn" data-tab="preview">معاينة الصفحة</button>
+        <button class="tab-btn" data-tab="live">تطبيق حي (DOM)</button>
+        <button class="tab-btn" data-tab="ai">المساعد الذكي</button>
+      </div>
+
+      <div id="tab-output" class="tab-panel active">
+        <pre id="output" class="output"></pre>
+      </div>
+
+      <div id="tab-preview" class="tab-panel">
+        <div id="preview-empty" class="preview-empty">
+          لا توجد صفحة محفوظة بعد — استخدم <code>احفظ_ملف("اسم.html"، المحتوى)</code> لعرضها هنا
+        </div>
+        <iframe id="preview-frame" class="preview-frame" title="معاينة الصفحة الناتجة" hidden></iframe>
+        <button id="download-btn" class="download-link" hidden>⭳ تنزيل الملف الأخير</button>
+      </div>
+
+      <div id="tab-live" class="tab-panel live-panel">
+        <div id="live-empty" class="preview-empty">
+          هذه اللوحة تُبنى مباشرة بواسطة كود ضاد نفسه عبر دوال مثل <code>عنصر_جديد</code> و<code>عند_نقر</code> — جرّب قالب "عدّاد تفاعلي (DOM حي)" من القوالب
+        </div>
+        <div id="live-app-root" class="live-app-root"></div>
+      </div>
+
+      <div id="tab-ai" class="tab-panel ai-panel">
+        <div id="ai-unavailable" class="ai-unavailable" hidden>
+          المساعد الذكي غير متاح في هذه البيئة الحالية.
+        </div>
+        <div id="ai-body" class="ai-body">
+          <div class="ai-quick-actions">
+            <button class="chip-btn" data-prompt="اشرح هذا الكود بإيجاز، سطرًا بما يفيد">اشرح الكود</button>
+            <button class="chip-btn" data-prompt="راجع هذا الكود واقترح تحسينًا واحدًا محددًا فقط">اقترح تحسينًا</button>
+            <button class="chip-btn" data-prompt="هل يوجد أي خطأ منطقي محتمل في هذا الكود؟">تحقق من الأخطاء</button>
+          </div>
+          <div id="ai-thread" class="ai-thread"></div>
+          <form id="ai-form" class="ai-form">
+            <textarea id="ai-input" class="ai-input" placeholder="اسأل عن الكود، أو اطلب مساعدة في البناء..." rows="2"></textarea>
+            <button type="submit" id="ai-send" class="btn btn-primary ai-send-btn">اسأل</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="statusbar">
+    <span id="status-text">جاهز</span>
+    <span class="status-sep">·</span>
+    <span>حارس تنفيذ: حتى ٢٬٠٠٠٬٠٠٠ خطوة لكل تشغيل</span>
+  </footer>
+</div>
+
+<script>
+__ENGINE__
+</script>
+<script>
+__HIGHLIGHTER__
+</script>
+<script>
+__AUTOCOMPLETE__
+</script>
+<script>
+__TEMPLATES__
+</script>
+<script>
+__UI__
+</script>
+</body>
+</html>
