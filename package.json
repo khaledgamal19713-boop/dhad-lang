@@ -1,0 +1,9 @@
+{
+  "name": "dhad-lang",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ضاد — لغة برمجة عربية موحّدة",
+  "scripts": {
+    "build": "node build.js"
+  }
+}
