@@ -467,3 +467,5 @@ body {
   .workspace { grid-template-columns: 1fr; grid-template-rows: 1.1fr 1fr; }
   .brand-sub { display: none; }
 }
+
+#monaco-editor { position: absolute; inset: 0; direction: ltr; }
