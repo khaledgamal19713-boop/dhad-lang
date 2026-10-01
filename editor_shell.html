@@ -19,7 +19,7 @@ __CSS__
       <span class="brand-mark" aria-hidden="true"><span class="brand-mark-glyph">ض</span></span>
       <div class="brand-text">
         <span class="brand-title">ضاد</span>
-        <span class="brand-sub">لغة برمجة عربية موحّدة — نسخة أولية للتجربة</span>
+        <span class="brand-sub">لغة برمجة عربية — إهداء إلى الخوارزمي</span>
       </div>
     </div>
     <div class="toolbar">
@@ -37,13 +37,10 @@ __CSS__
     <section class="pane pane-editor">
       <div class="pane-head">
         <span class="pane-title">الشيفرة المصدرية</span>
-        <span class="pane-hint">Ctrl + Enter للتشغيل · Tab للإكمال</span>
+        <span class="pane-hint">Ctrl + Enter للتشغيل · Monaco Editor (محرك VS Code)</span>
       </div>
       <div class="editor-wrap" id="editor-wrap">
-        <div id="gutter" class="gutter">1</div>
-        <pre id="code-highlight" class="code-highlight" aria-hidden="true"><code id="code-highlight-code"></code></pre>
-        <textarea id="code-area" class="code-area code-area-gutter" spellcheck="false" dir="rtl" autocapitalize="off" autocomplete="off" wrap="off"></textarea>
-        <ul id="ac-list" class="ac-list" hidden></ul>
+        <div id="monaco-editor" dir="ltr"></div>
       </div>
     </section>
 
@@ -97,18 +94,21 @@ __CSS__
   <footer class="statusbar">
     <span id="status-text">جاهز</span>
     <span class="status-sep">·</span>
-    <span>حارس تنفيذ: حتى ٢٬٠٠٠٬٠٠٠ خطوة لكل تشغيل</span>
+    <span id="engine-text">…</span>
   </footer>
 </div>
 
 <script>
-__ENGINE__
+__FRONT__
 </script>
 <script>
-__HIGHLIGHTER__
+__COMPILER__
 </script>
 <script>
-__AUTOCOMPLETE__
+__VM__
+</script>
+<script>
+__MONACO__
 </script>
 <script>
 __TEMPLATES__
