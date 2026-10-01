@@ -16,9 +16,10 @@ build(
   "editor_shell.html",
   {
     __CSS__: "editor.css",
-    __ENGINE__: "engine.browser.js",
-    __HIGHLIGHTER__: "highlighter.js",
-    __AUTOCOMPLETE__: "autocomplete.js",
+    __FRONT__: "front.js",
+    __COMPILER__: "compiler.js",
+    __VM__: "vm.js",
+    __MONACO__: "monaco_setup.js",
     __TEMPLATES__: "templates.js",
     __UI__: "editor_ui.js",
   },
@@ -29,7 +30,7 @@ build(
   "guide_shell.html",
   {
     __CSS__: "guide.css",
-    __ENGINE__: "engine.browser.js",
+    __ENGINE__: "front.js",
     __HIGHLIGHTER__: "highlighter.js",
   },
   "dist/guide.html"
