@@ -26,6 +26,10 @@ build(
   "dist/index.html"
 );
 
+fs.mkdirSync("dist", { recursive: true });
+fs.copyFileSync("manifest.json", "dist/manifest.json");
+console.log("Copied manifest.json");
+
 build(
   "guide_shell.html",
   {
