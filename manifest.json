@@ -1,0 +1,27 @@
+{
+  "name": "ضاد — محرر الأكواد",
+  "short_name": "ضاد",
+  "description": "لغة برمجة عربية موحّدة بمحرك Monaco وآلة افتراضية Bytecode",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1e1e1e",
+  "theme_color": "#007acc",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%23C79A3E'/%3E%3Ctext x='50' y='68' font-size='58' text-anchor='middle' fill='%2314110A'%3Eض%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23C79A3E'/%3E%3Ctext x='50' y='68' font-size='58' text-anchor='middle' fill='%2314110A'%3Eض%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
