@@ -26,15 +26,16 @@ __CSS__
     </button>
   </div>
 
-  <div class="menubar">
-    <span class="menu-item">ملف</span>
-    <span class="menu-item">تحرير</span>
-    <span class="menu-item">تحديد</span>
-    <span class="menu-item">عرض</span>
-    <span class="menu-item">انتقال</span>
-    <span class="menu-item">تشغيل</span>
-    <span class="menu-item">طرفية</span>
-    <span class="menu-item">مساعدة</span>
+  <div class="menubar" id="menubar">
+    <button class="menu-item" data-menu="ملف">ملف</button>
+    <button class="menu-item" data-menu="تحرير">تحرير</button>
+    <button class="menu-item" data-menu="تحديد">تحديد</button>
+    <button class="menu-item" data-menu="عرض">عرض</button>
+    <button class="menu-item" data-menu="انتقال">انتقال</button>
+    <button class="menu-item" data-menu="تشغيل">تشغيل</button>
+    <button class="menu-item" data-menu="طرفية">طرفية</button>
+    <button class="menu-item" data-menu="مساعدة">مساعدة</button>
+    <div class="menu-dropdown" id="menu-dropdown" hidden></div>
   </div>
 
   <div class="workbench">
@@ -55,17 +56,33 @@ __CSS__
         <svg viewBox="0 0 24 24"><path d="M9 3h3v2.5a1.5 1.5 0 0 0 3 0V3h3v4h-2.5a1.5 1.5 0 0 0 0 3H18v4h-2.5a1.5 1.5 0 1 0 0 3H18v4H9v-2.5a1.5 1.5 0 0 0-3 0V21H3v-4h2.5a1.5 1.5 0 0 0 0-3H3V9h2.5a1.5 1.5 0 0 0 0-3H3V3h6z" fill="currentColor"/></svg>
       </button>
       <div class="activity-spacer"></div>
-      <button class="activity-btn" title="الإعدادات" aria-label="الإعدادات">
+      <button class="activity-btn" id="settings-btn" title="الإعدادات" aria-label="الإعدادات">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 2v3M12 19v3M4.2 4.2l2 2M17.8 17.8l2 2M2 12h3M19 12h3M4.2 19.8l2-2M17.8 6.2l2-2" stroke="currentColor" stroke-width="1.6"/></svg>
       </button>
     </div>
 
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <div class="sidebar" id="sidebar">
-      <div class="sidebar-header">المستكشف</div>
-      <div class="sidebar-section">
-        <div class="sidebar-section-title" id="tree-root-label">▾ ضاد</div>
+      <div class="sidebar-header" id="sidebar-title">المستكشف</div>
+      <div class="side-view active" id="sv-explorer">
+        <div class="sidebar-section-title" id="tree-root-label">▾ ضاد
+          <button class="side-action" id="new-file-btn" title="ملف جديد" aria-label="ملف جديد">＋ ملف جديد</button>
+        </div>
         <div class="tree" id="file-tree"></div>
+      </div>
+      <div class="side-view" id="sv-search">
+        <input id="search-input" class="side-input" type="text" placeholder="ابحث في كل الملفات…" autocomplete="off">
+        <div id="search-results" class="search-results"></div>
+      </div>
+      <div class="side-view" id="sv-scm">
+        <div class="side-note">التحكم بالمصدر: مشروعك مرتبط بمستودع GitHub «dhad-lang». الدمج مع Git داخل المحرر قيد التطوير.</div>
+      </div>
+      <div class="side-view" id="sv-run">
+        <div class="side-note">شغّل الملف الحالي وشاهد المخرجات في اللوحة السفلية.</div>
+        <button class="btn btn-primary side-run" id="side-run-btn">▶ تشغيل الملف الحالي</button>
+      </div>
+      <div class="side-view" id="sv-extensions">
+        <div class="side-note">الإضافات: لا توجد إضافات مثبّتة. المحرر يتضمن دعم لغة ضاد والإكمال التلقائي والقوالب مدمجًا.</div>
       </div>
     </div>
 
@@ -73,6 +90,7 @@ __CSS__
       <div class="tabbar" id="tabbar"></div>
       <div class="editor-host-wrap">
         <div class="editor-host" id="monaco-editor"></div>
+        <div class="editor-empty" id="editor-empty" hidden>لا يوجد ملف مفتوح — اختر ملفًا من المستكشف أو أنشئ ملفًا جديدًا (ملف ◂ ملف جديد).</div>
         <button id="run-btn" class="run-fab" title="تشغيل (Ctrl+Enter)" aria-label="تشغيل">
           <svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z" fill="currentColor"/></svg>
         </button>
@@ -155,6 +173,15 @@ __VM__
 </script>
 <script>
 __MONACO__
+</script>
+<script>
+__HIGHLIGHTER__
+</script>
+<script>
+__AUTOCOMPLETE__
+</script>
+<script>
+__FALLBACK__
 </script>
 <script>
 __TEMPLATES__
