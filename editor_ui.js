@@ -53,64 +53,155 @@
     else if (mq.addListener) mq.addListener(onChange);
   }
 
+  // ---------- عروض الشريط الجانبي (كل زر له عرضه) ----------
+  const VIEW_TITLES = { explorer: "المستكشف", search: "بحث", scm: "التحكم بالمصدر", run: "التشغيل والتصحيح", extensions: "الإضافات" };
+  function showSideView(name) {
+    Object.keys(VIEW_TITLES).forEach((k) => document.getElementById("sv-" + k).classList.toggle("active", k === name));
+    document.getElementById("sidebar-title").textContent = VIEW_TITLES[name];
+    document.querySelectorAll(".activity-btn[data-view]").forEach((b) => b.classList.toggle("active", b.dataset.view === name));
+    if (name === "search") setTimeout(() => document.getElementById("search-input").focus(), 0);
+  }
   document.querySelectorAll(".activity-btn[data-view]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const wasActive = btn.classList.contains("active");
-      document.querySelectorAll(".activity-btn[data-view]").forEach((b) => b.classList.remove("active"));
-      if (wasActive && isSidebarOpen()) {
-        setSidebarOpen(false);
-      } else {
-        btn.classList.add("active");
-        setSidebarOpen(true);
-      }
+      if (wasActive && isSidebarOpen()) { setSidebarOpen(false); return; }
+      showSideView(btn.dataset.view);
+      setSidebarOpen(true);
     });
   });
+  document.getElementById("settings-btn").addEventListener("click", () => {
+    showPanel("output");
+    appendLine("الإعدادات: السمة الداكنة، الخط Cairo، حجم الخط ١٤. (مزيد من الإعدادات قريبًا)", "line-meta");
+  });
+  document.getElementById("side-run-btn").addEventListener("click", () => runCode());
 
+  // ---------- الملفات ----------
+  const USER_CAT = "ملفاتي";
+  const STORE_KEY = "dhad.files.v1";
   const fileEntries = [];
+  const contents = new Map();
   TEMPLATE_GROUPS.forEach((group) => {
     group.items.forEach((item) => {
-      fileEntries.push({ id: group.category + "/" + item.name, name: item.name + ".ضاد", code: item.code, category: group.category });
+      const id = group.category + "/" + item.name;
+      fileEntries.push({ id, name: item.name + ".ضاد", code: item.code, category: group.category, user: false });
+      contents.set(id, item.code);
     });
   });
+  function loadStore() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+      if (!raw) return;
+      (raw.userFiles || []).forEach((f) => {
+        if (!fileEntries.find((e) => e.id === f.id)) {
+          fileEntries.push({ id: f.id, name: f.name, code: "", category: USER_CAT, user: true });
+        }
+      });
+      Object.entries(raw.edits || {}).forEach(([id, code]) => { if (fileEntries.find((e) => e.id === id)) contents.set(id, code); });
+    } catch (e) { /* التخزين غير متاح */ }
+  }
+  let saveTimer = null;
+  function saveStore() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      try {
+        const edits = {};
+        fileEntries.forEach((e) => { if (contents.get(e.id) !== e.code || e.user) edits[e.id] = contents.get(e.id) || ""; });
+        const userFiles = fileEntries.filter((e) => e.user).map((e) => ({ id: e.id, name: e.name }));
+        localStorage.setItem(STORE_KEY, JSON.stringify({ userFiles, edits }));
+      } catch (e) { /* تجاهل */ }
+    }, 300);
+  }
+  loadStore();
 
-  function buildTree() {
+  const folderOpen = {};
+  function buildTree(pendingNew) {
     fileTreeEl.innerHTML = "";
-    TEMPLATE_GROUPS.forEach((group) => {
+    const cats = [USER_CAT].concat(TEMPLATE_GROUPS.map((g) => g.category));
+    cats.forEach((cat) => {
+      const entries = fileEntries.filter((f) => f.category === cat);
+      if (cat === USER_CAT && entries.length === 0 && !pendingNew) return;
+      if (folderOpen[cat] === undefined) folderOpen[cat] = true;
       const folder = document.createElement("div");
       folder.className = "tree-folder";
-      folder.innerHTML = `<span class="twisty">▾</span><span>${group.category}</span>`;
+      folder.innerHTML = `<span class="twisty">${folderOpen[cat] ? "▾" : "◂"}</span><span>${cat}</span>`;
       const body = document.createElement("div");
-      body.className = "tree-group open";
-      group.items.forEach((item) => {
-        const id = group.category + "/" + item.name;
+      body.className = "tree-group" + (folderOpen[cat] ? " open" : "");
+      if (cat === USER_CAT && pendingNew) {
+        const row = document.createElement("div");
+        row.className = "tree-file";
+        const input = document.createElement("input");
+        input.className = "tree-input";
+        input.value = pendingNew;
+        input.setAttribute("aria-label", "اسم الملف الجديد");
+        row.innerHTML = '<span class="file-icon">◆</span>';
+        row.appendChild(input);
+        body.appendChild(row);
+        setTimeout(() => { input.focus(); input.select(); }, 0);
+        let done = false;
+        const finish = (ok) => {
+          if (done) return; done = true;
+          if (ok) createFileNamed(input.value); else buildTree();
+        };
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") { e.preventDefault(); finish(true); }
+          else if (e.key === "Escape") { e.preventDefault(); finish(false); }
+        });
+        input.addEventListener("blur", () => finish(true));
+      }
+      entries.forEach((entry) => {
         const fileEl = document.createElement("div");
-        fileEl.className = "tree-file";
-        fileEl.dataset.id = id;
-        fileEl.innerHTML = `<span class="file-icon">◆</span><span class="file-name">${item.name}.ضاد</span>`;
-        fileEl.addEventListener("click", () => openFile(id, { preview: true }));
-        fileEl.addEventListener("dblclick", () => openFile(id, { preview: false }));
+        fileEl.className = "tree-file" + (entry.id === activeId ? " active" : "");
+        fileEl.dataset.id = entry.id;
+        fileEl.innerHTML = `<span class="file-icon">◆</span><span class="file-name"></span>`;
+        fileEl.querySelector(".file-name").textContent = entry.name;
+        fileEl.addEventListener("click", () => openFile(entry.id, { preview: true }));
+        fileEl.addEventListener("dblclick", () => openFile(entry.id, { preview: false }));
         body.appendChild(fileEl);
       });
-      folder.addEventListener("click", () => body.classList.toggle("open"));
+      folder.addEventListener("click", () => { folderOpen[cat] = !folderOpen[cat]; buildTree(); });
       fileTreeEl.appendChild(folder);
       fileTreeEl.appendChild(body);
     });
   }
-  buildTree();
 
+  function startNewFile() {
+    showSideView("explorer");
+    setSidebarOpen(true);
+    folderOpen[USER_CAT] = true;
+    let n = 1;
+    while (fileEntries.find((f) => f.id === USER_CAT + "/بدون عنوان-" + toArabicIndicDigits(String(n)))) n++;
+    buildTree("بدون عنوان-" + toArabicIndicDigits(String(n)));
+  }
+  function createFileNamed(raw) {
+    let name = String(raw || "").replace(/[\\/\n]/g, "").trim();
+    if (!name) { buildTree(); return; }
+    if (!/\.ضاد$/.test(name)) name += ".ضاد";
+    let id = USER_CAT + "/" + name.replace(/\.ضاد$/, "");
+    let base = name.replace(/\.ضاد$/, ""), k = 2;
+    while (fileEntries.find((f) => f.id === id)) { id = USER_CAT + "/" + base + "-" + toArabicIndicDigits(String(k)); name = base + "-" + toArabicIndicDigits(String(k)) + ".ضاد"; k++; }
+    fileEntries.push({ id, name, code: "", category: USER_CAT, user: true });
+    contents.set(id, "");
+    saveStore();
+    buildTree();
+    openFile(id, { preview: false });
+    if (ed) ed.focus();
+  }
+  document.getElementById("new-file-btn").addEventListener("click", (e) => { e.stopPropagation(); startNewFile(); });
+
+  // ---------- المحرر (Monaco أو الاحتياطي خلف واجهة واحدة) ----------
   let monaco = null;
-  let editor = null;
+  let ed = null;
   const modelsById = new Map();
   let openTabs = [];
   let activeId = null;
+  const emptyEl = document.getElementById("editor-empty");
 
   function getEntry(id) { return fileEntries.find((f) => f.id === id); }
 
   function getOrCreateModel(id) {
     if (modelsById.has(id)) return modelsById.get(id);
-    const entry = getEntry(id);
-    const model = monaco.editor.createModel(entry.code, "dhad");
-    model.onDidChangeContent(() => { if (id === activeId) pinTab(id); });
+    const model = monaco.editor.createModel(contents.get(id) || "", "dhad");
+    model.onDidChangeContent(() => { contents.set(id, model.getValue()); saveStore(); if (id === activeId) pinTab(id); });
     modelsById.set(id, model);
     return model;
   }
@@ -118,6 +209,14 @@
   function pinTab(id) {
     const tab = openTabs.find((t) => t.id === id);
     if (tab && tab.preview) { tab.preview = false; renderTabs(); }
+  }
+
+  function showInEditor(id) {
+    emptyEl.hidden = id !== null;
+    if (!ed) return;
+    ed.show(id !== null);
+    if (id === null) return;
+    ed.open(id);
   }
 
   function openFile(id, opts) {
@@ -139,7 +238,7 @@
     activeId = id;
     renderTabs();
     renderTreeActive();
-    if (editor) editor.setModel(getOrCreateModel(id));
+    showInEditor(id);
     clearMarkersFor(id);
     if (isNarrow()) setSidebarOpen(false);
   }
@@ -152,7 +251,7 @@
     if (activeId === id) {
       const next = openTabs[idx] || openTabs[idx - 1];
       if (next) openFile(next.id, { preview: next.preview });
-      else { activeId = null; renderTabs(); if (editor) editor.setModel(null); }
+      else { activeId = null; renderTabs(); renderTreeActive(); showInEditor(null); }
     } else {
       renderTabs();
     }
@@ -164,7 +263,8 @@
       const entry = getEntry(t.id);
       const el = document.createElement("div");
       el.className = "tab" + (t.id === activeId ? " active" : "") + (t.preview ? " preview" : "");
-      el.innerHTML = `<span class="tab-icon">◆</span><span class="tab-title">${entry.name}</span>`;
+      el.innerHTML = `<span class="tab-icon">◆</span><span class="tab-title"></span>`;
+      el.querySelector(".tab-title").textContent = entry.name;
       const closeBtn = document.createElement("button");
       closeBtn.className = "tab-close";
       closeBtn.textContent = "×";
@@ -177,7 +277,7 @@
   }
 
   function renderTreeActive() {
-    document.querySelectorAll(".tree-file").forEach((el) => el.classList.toggle("active", el.dataset.id === activeId));
+    document.querySelectorAll(".tree-file[data-id]").forEach((el) => el.classList.toggle("active", el.dataset.id === activeId));
   }
 
   function extractLineNumber(msg) {
@@ -188,8 +288,7 @@
   }
 
   function clearMarkersFor(id) {
-    const model = modelsById.get(id);
-    if (model && monaco) monaco.editor.setModelMarkers(model, "dhad", []);
+    if (ed) ed.setError(0, "");
     problemsEmpty.hidden = false;
     problemsList.hidden = true;
     problemsList.innerHTML = "";
@@ -197,23 +296,18 @@
   }
 
   function reportError(id, message) {
-    const model = modelsById.get(id);
     const line = extractLineNumber(message);
-    if (model && monaco) {
-      monaco.editor.setModelMarkers(model, "dhad", [{
-        severity: monaco.MarkerSeverity.Error,
-        startLineNumber: line, startColumn: 1, endLineNumber: line, endColumn: 1000,
-        message: message,
-      }]);
-    }
+    if (ed) ed.setError(line, message);
     problemsEmpty.hidden = true;
     problemsList.hidden = false;
     const entry = getEntry(id);
     const li = document.createElement("li");
-    li.innerHTML = `<span class="pi-icon">●</span><span>${message}</span><span style="color:#8a8a8a">${entry ? entry.name : ""}:${toArabicIndicDigits(String(line))}</span>`;
-    li.addEventListener("click", () => { if (editor) editor.revealLineInCenter(line); });
+    li.innerHTML = `<span class="pi-icon">●</span><span></span><span style="color:#8a8a8a"></span>`;
+    li.children[1].textContent = message;
+    li.children[2].textContent = (entry ? entry.name : "") + ":" + toArabicIndicDigits(String(line));
+    li.addEventListener("click", () => { if (ed) ed.reveal(line); });
     problemsList.appendChild(li);
-    statusProblems.textContent = "✓ 0  ⚠ 0".replace("0 ", "1 ");
+    statusProblems.textContent = "✓ 0  ⚠ 1";
   }
 
   let lastSavedFile = null;
@@ -262,7 +356,12 @@
   initCapabilities();
 
   function runCode() {
-    if (!editor || !activeId) return;
+    if (!ed || !activeId) {
+      showPanel("output");
+      outputEl.textContent = "";
+      appendLine("لا يوجد ملف مفتوح للتشغيل — افتح ملفًا أو أنشئ ملفًا جديدًا.", "line-meta");
+      return;
+    }
     outputEl.textContent = "";
     previewFrame.hidden = true;
     previewEmpty.hidden = false;
@@ -272,7 +371,7 @@
     liveEmpty.hidden = false;
     clearMarkersFor(activeId);
 
-    const src = editor.getValue();
+    const src = ed.getValue();
     const startedAt = performance.now();
 
     let compiled;
@@ -297,7 +396,7 @@
       if (liveRoot.children.length > 0) { liveEmpty.hidden = true; showPanel("live"); }
       else showPanel("output");
       const ms = toArabicIndicDigits((performance.now() - startedAt).toFixed(1));
-      statusEngine.textContent = `${ms}ms · ${toArabicIndicDigits(String(vm.steps))} تعليمة`;
+      statusEngine.textContent = `${ed.kind === "monaco" ? "Monaco" : "المحرر المدمج"} · ${ms}ms · ${toArabicIndicDigits(String(vm.steps))} تعليمة`;
       if (outputEl.textContent === "") appendLine("(لا مخرجات — البرنامج لم يستدعِ اطبع())", "line-meta");
     } catch (e) {
       appendLine("خطأ أثناء التنفيذ: " + e.message, "line-error");
@@ -307,40 +406,172 @@
   }
   runBtn.addEventListener("click", runCode);
 
+  function makeMonacoEd() {
+    const editor = monaco.editor.create(editorContainer, {
+      model: null, theme: "dhad-dark",
+      fontFamily: "Cairo, 'Courier New', monospace", fontSize: 14, lineHeight: 22,
+      minimap: { enabled: true }, automaticLayout: true, tabSize: 4, insertSpaces: true,
+      scrollBeyondLastLine: false, renderLineHighlight: "all",
+      bracketPairColorization: { enabled: true },
+      lineNumbers: (n) => toArabicIndicDigits(String(n)), padding: { top: 10 },
+    });
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, runCode);
+    editor.onDidChangeCursorPosition((e) => {
+      statusPos.textContent = `السطر ${toArabicIndicDigits(String(e.position.lineNumber))}، العمود ${toArabicIndicDigits(String(e.position.column))}`;
+    });
+    return {
+      kind: "monaco",
+      open: (id) => { editor.setModel(getOrCreateModel(id)); editor.focus(); },
+      getValue: () => editor.getValue(),
+      setError: (line, msg) => {
+        const model = editor.getModel();
+        if (!model) return;
+        monaco.editor.setModelMarkers(model, "dhad", line ? [{
+          severity: monaco.MarkerSeverity.Error, startLineNumber: line, startColumn: 1, endLineNumber: line, endColumn: 1000, message: msg,
+        }] : []);
+      },
+      reveal: (line) => { editor.revealLineInCenter(line); editor.setPosition({ lineNumber: line, column: 1 }); editor.focus(); },
+      focus: () => editor.focus(),
+      show: (v) => { editorContainer.style.visibility = v ? "visible" : "hidden"; },
+      undo: () => { editor.focus(); editor.trigger("menu", "undo", null); },
+      redo: () => { editor.focus(); editor.trigger("menu", "redo", null); },
+      selectAll: () => { editor.focus(); editor.trigger("menu", "selectAll", null); },
+    };
+  }
+
+  function makeFallbackEd() {
+    const fb = createFallbackEditor(editorContainer);
+    let current = null;
+    fb.onInput(() => { if (current) { contents.set(current, fb.getValue()); saveStore(); pinTab(current); } });
+    fb.onCursor((c) => { statusPos.textContent = `السطر ${toArabicIndicDigits(String(c.line))}، العمود ${toArabicIndicDigits(String(c.column))}`; });
+    editorContainer.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); runCode(); }
+    });
+    return {
+      kind: "fallback",
+      open: (id) => { current = id; fb.setValue(contents.get(id) || ""); fb.focus(); },
+      getValue: () => fb.getValue(),
+      setError: (line) => fb.setErrorLine(line),
+      reveal: (line) => fb.revealLine(line),
+      focus: () => fb.focus(),
+      show: (v) => fb.show(v),
+      undo: () => fb.undo(), redo: () => fb.redo(), selectAll: () => fb.selectAll(),
+    };
+  }
+
   async function initEditor() {
-    statusEngine.textContent = "جارٍ تحميل Monaco…";
-    const defaultId = fileEntries[Math.min(5, fileEntries.length - 1)].id;
+    statusEngine.textContent = "جارٍ تحميل المحرر…";
+    buildTree();
+    const defaultId = fileEntries.find((f) => !f.user && f.name.indexOf("عدّاد") !== -1) ? fileEntries.find((f) => f.name.indexOf("عدّاد") !== -1).id : fileEntries[0].id;
     try {
       monaco = await loadMonaco();
       registerDhadLanguage(monaco);
-      editor = monaco.editor.create(editorContainer, {
-        model: null,
-        theme: "dhad-dark",
-        fontFamily: "Cairo, 'Courier New', monospace",
-        fontSize: 14,
-        lineHeight: 22,
-        minimap: { enabled: true },
-        automaticLayout: true,
-        tabSize: 4,
-        insertSpaces: true,
-        scrollBeyondLastLine: false,
-        renderLineHighlight: "all",
-        bracketPairColorization: { enabled: true },
-        lineNumbers: (n) => toArabicIndicDigits(String(n)),
-        padding: { top: 10 },
-      });
-      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, runCode);
-      editor.onDidChangeCursorPosition((e) => {
-        statusPos.textContent = `السطر ${toArabicIndicDigits(String(e.position.lineNumber))}، العمود ${toArabicIndicDigits(String(e.position.column))}`;
-      });
+      ed = makeMonacoEd();
       statusEngine.textContent = "Monaco · آلة افتراضية Bytecode";
-      openFile(defaultId, { preview: false });
     } catch (e) {
-      statusEngine.textContent = "تعذّر تحميل Monaco";
-      appendLine("تعذّر تحميل محرر Monaco: " + (e && e.message ? e.message : "غير معروف"), "line-error");
+      monaco = null;
+      ed = makeFallbackEd();
+      statusEngine.textContent = "المحرر المدمج · آلة افتراضية Bytecode";
+      appendLine("تعذّر تحميل Monaco (" + (e && e.message ? e.message : "الشبكة") + ") — تم التحويل تلقائيًا إلى المحرر المدمج.", "line-meta");
     }
+    window.__dhad = { get editorKind() { return ed.kind; } };
+    openFile(defaultId, { preview: false });
     runCode();
   }
+
+  // ---------- القوائم العلوية ----------
+  const downloadCurrent = async () => {
+    if (!activeId) return;
+    const entry = getEntry(activeId);
+    if (caps.downloads) {
+      try { await caps.downloads.save({ filename: entry.name.replace(/\.ضاد$/, ".txt"), data: ed.getValue() }); return; }
+      catch (e) { if (e && e.code === "declined") return; }
+    }
+    const blob = new Blob([ed.getValue()], { type: "text/plain;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = entry.name; document.body.appendChild(a); a.click(); a.remove();
+  };
+  function nextFile(delta) {
+    if (!openTabs.length) return;
+    const i = openTabs.findIndex((t) => t.id === activeId);
+    const t = openTabs[(i + delta + openTabs.length) % openTabs.length];
+    openFile(t.id, { preview: t.preview });
+  }
+  function gotoLine() {
+    if (!ed) return;
+    const n = parseInt(String(window.prompt ? window.prompt("رقم السطر:", "1") : "1").replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d)), 10);
+    if (n > 0) ed.reveal(n);
+  }
+  const MENUS = {
+    "ملف": [["ملف جديد", startNewFile], ["تنزيل الملف الحالي", downloadCurrent], ["إغلاق التبويب", () => activeId && closeTab(activeId)]],
+    "تحرير": [["تراجع", () => ed && ed.undo()], ["إعادة", () => ed && ed.redo()]],
+    "تحديد": [["تحديد الكل", () => ed && ed.selectAll()]],
+    "عرض": [["المستكشف", () => { showSideView("explorer"); setSidebarOpen(true); }], ["بحث", () => { showSideView("search"); setSidebarOpen(true); }],
+      ["تبديل الشريط الجانبي", () => setSidebarOpen(!isSidebarOpen())], ["لوحة المشكلات", () => showPanel("problems")], ["لوحة المخرجات", () => showPanel("output")], ["المساعد الذكي", () => showPanel("ai")]],
+    "انتقال": [["الذهاب إلى سطر…", gotoLine], ["التبويب التالي", () => nextFile(1)], ["التبويب السابق", () => nextFile(-1)]],
+    "تشغيل": [["تشغيل الملف الحالي (Ctrl+Enter)", runCode]],
+    "طرفية": [["المخرجات", () => showPanel("output")], ["تطبيق حي (DOM)", () => showPanel("live")], ["مسح المخرجات", () => { outputEl.textContent = ""; showPanel("output"); }]],
+    "مساعدة": [["دليل ضاد", () => window.open("/guide.html", "_blank")], ["عن ضاد", () => { showPanel("output"); appendLine("ضاد — لغة برمجة عربية بمترجم وآلة افتراضية خاصة، تكريمًا للخوارزمي.", "line-meta"); }]],
+  };
+  const menuDropdown = document.getElementById("menu-dropdown");
+  function closeMenu() { menuDropdown.hidden = true; document.querySelectorAll(".menu-item").forEach((m) => m.classList.remove("open")); }
+  document.querySelectorAll(".menu-item[data-menu]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const wasOpen = btn.classList.contains("open");
+      closeMenu();
+      if (wasOpen) return;
+      btn.classList.add("open");
+      menuDropdown.innerHTML = "";
+      MENUS[btn.dataset.menu].forEach(([label, fn]) => {
+        const it = document.createElement("button");
+        it.className = "menu-entry";
+        it.textContent = label;
+        it.addEventListener("click", (ev) => { ev.stopPropagation(); closeMenu(); fn(); });
+        menuDropdown.appendChild(it);
+      });
+      menuDropdown.hidden = false;
+      const r = btn.getBoundingClientRect();
+      menuDropdown.style.left = Math.max(0, Math.min(r.left, window.innerWidth - 230)) + "px";
+    });
+  });
+  document.addEventListener("click", closeMenu);
+
+  // ---------- البحث في الملفات ----------
+  const searchInput = document.getElementById("search-input");
+  const searchResults = document.getElementById("search-results");
+  function doSearch() {
+    const q = searchInput.value.trim();
+    searchResults.innerHTML = "";
+    if (!q) return;
+    let total = 0;
+    fileEntries.forEach((entry) => {
+      const lines = (contents.get(entry.id) || "").split("\n");
+      const hits = [];
+      lines.forEach((ln, i) => { if (ln.indexOf(q) !== -1) hits.push([i + 1, ln.trim()]); });
+      if (!hits.length) return;
+      total += hits.length;
+      const head = document.createElement("div");
+      head.className = "sr-file";
+      head.textContent = entry.name + "  (" + toArabicIndicDigits(String(hits.length)) + ")";
+      searchResults.appendChild(head);
+      hits.slice(0, 20).forEach(([line, text]) => {
+        const row = document.createElement("div");
+        row.className = "sr-hit";
+        row.textContent = toArabicIndicDigits(String(line)) + ": " + text.slice(0, 80);
+        row.addEventListener("click", () => { openFile(entry.id, { preview: true }); setTimeout(() => ed && ed.reveal(line), 30); });
+        searchResults.appendChild(row);
+      });
+    });
+    if (!total) {
+      const none = document.createElement("div");
+      none.className = "side-note";
+      none.textContent = "لا توجد نتائج.";
+      searchResults.appendChild(none);
+    }
+  }
+  searchInput.addEventListener("input", doSearch);
+
   initEditor();
 
   const AI_ERROR_MESSAGES = {
@@ -367,7 +598,7 @@
     return div;
   }
   async function askAi(question) {
-    if (!caps.sample || !question.trim() || !editor) return;
+    if (!caps.sample || !question.trim() || !ed) return;
     addAiMessage("user", question);
     aiInput.value = "";
     aiSendBtn.disabled = true;
@@ -375,7 +606,7 @@
     pending.classList.add("ai-msg-pending");
     const instructions =
       "أنت مساعد يشرح ويراجع كودًا مكتوبًا بلغة برمجة عربية اسمها ضاد. أجب بالعربية الفصحى المبسطة، بإيجاز شديد (٥ أسطر كحد أقصى)، بدون مقدمات.\n\n" +
-      "الكود الحالي:\n```\n" + editor.getValue() + "\n```\n\nسؤال المستخدم: " + question;
+      "الكود الحالي:\n```\n" + ed.getValue() + "\n```\n\nسؤال المستخدم: " + question;
     try {
       const result = await caps.sample(instructions, {
         modelTier: "quick",
