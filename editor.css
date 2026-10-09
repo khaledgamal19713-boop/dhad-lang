@@ -234,3 +234,78 @@ body { background: var(--editor-bg); color: #d4d4d4; font-family: var(--font-ui)
 @media (min-width: 761px) {
   .sidebar-toggle { display: none; }
 }
+
+/* ---- قوائم علوية حقيقية ---- */
+.menu-item { background: transparent; border: none; font-family: inherit; cursor: pointer; }
+.menu-item.open { background: #505050; }
+.menubar { position: relative; }
+.menu-dropdown {
+  position: absolute; top: 27px; min-width: 220px; z-index: 50;
+  background: #252526; border: 1px solid #454545; border-radius: 5px; padding: 4px 0;
+  box-shadow: 0 6px 18px rgba(0,0,0,.5);
+}
+.menu-dropdown[hidden] { display: none; }
+.menu-entry {
+  display: block; width: 100%; text-align: right; background: transparent; border: none;
+  color: #cccccc; font: 13px var(--font-ui); padding: 6px 16px; cursor: pointer;
+}
+.menu-entry:hover { background: #094771; color: #fff; }
+
+/* ---- عروض الشريط الجانبي ---- */
+.side-view { display: none; flex-direction: column; }
+.side-view.active { display: flex; }
+.side-action {
+  display: block; margin-top: 4px; background: transparent; border: 1px solid #555; color: #ccc; border-radius: 3px;
+  font: 11px var(--font-ui); padding: 1px 7px; cursor: pointer; text-transform: none;
+}
+.side-action:hover { background: #3a3d41; }
+.side-input {
+  margin: 6px 10px; padding: 5px 8px; background: #3c3c3c; color: #ccc; border: 1px solid #3c3c3c;
+  border-radius: 3px; font: 13px var(--font-ui); outline: none; direction: rtl;
+}
+.side-input:focus { border-color: #007fd4; }
+.side-note { padding: 10px 16px; font-size: 12.5px; color: #9a9a9a; line-height: 1.7; }
+.side-run { margin: 6px 16px; }
+.sr-file { padding: 4px 12px; font-size: 12.5px; font-weight: 700; color: #ccc; background: #2a2d2e; }
+.sr-hit { padding: 3px 24px; font-size: 12.5px; color: #b0b0b0; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sr-hit:hover { background: var(--list-hover); }
+.tree-input {
+  flex: 1; min-width: 0; background: #3c3c3c; color: #fff; border: 1px solid #007fd4;
+  font: 13px var(--font-ui); padding: 1px 4px; outline: none; direction: rtl;
+}
+.editor-empty {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  text-align: center; padding: 24px; color: #7a7a7a; font-size: 14px; line-height: 1.9;
+}
+.editor-empty[hidden] { display: none; }
+
+/* ---- المحرر الاحتياطي ---- */
+.fb-root { position: absolute; inset: 0; display: flex; flex-direction: row-reverse; background: var(--editor-bg); overflow: hidden; }
+.fb-gutter { width: 54px; flex-shrink: 0; overflow: hidden; background: var(--editor-bg); border-left: 1px solid #2d2d2d; padding-top: 10px; direction: ltr; }
+.fb-ln { height: 22px; line-height: 22px; text-align: center; font: 13px 'Courier New', monospace; color: #6e7681; }
+.fb-ln.err { color: #f48771; font-weight: 700; }
+.fb-code { position: relative; flex: 1; min-width: 0; overflow: hidden; }
+.fb-hl, .fb-ta {
+  position: absolute; inset: 0; margin: 0; padding: 10px 14px; border: 0; box-sizing: border-box;
+  font: 14px/22px Cairo, 'Courier New', monospace; white-space: pre; tab-size: 4; letter-spacing: 0;
+}
+.fb-hl { color: #d4d4d4; pointer-events: none; overflow: visible; }
+.fb-ta { resize: none; background: transparent; color: transparent; caret-color: #fff; outline: none; overflow: auto; -webkit-text-fill-color: transparent; }
+.fb-ta::selection { background: #264f78; -webkit-text-fill-color: transparent; }
+.fb-band { position: absolute; left: 0; right: 0; height: 22px; background: rgba(244,135,113,.18); border-bottom: 1px solid #f48771; pointer-events: none; }
+.fb-root .tok-keyword { color: #c586c0; font-weight: 700; }
+.fb-root .tok-builtin { color: #dcdcaa; }
+.fb-root .tok-string { color: #ce9178; }
+.fb-root .tok-number { color: #b5cea8; }
+.fb-root .tok-comment { color: #6a9955; font-style: italic; }
+.fb-root .tok-ident { color: #9cdcfe; }
+.fb-root .tok-bracket { color: #ffd700; }
+.fb-root .tok-op { color: #d4d4d4; }
+.ac-list {
+  position: absolute; z-index: 20; list-style: none; margin: 0; padding: 2px 0; min-width: 190px; max-height: 190px; overflow: auto;
+  background: #252526; border: 1px solid #454545; border-radius: 4px; box-shadow: 0 4px 14px rgba(0,0,0,.5);
+}
+.ac-list[hidden] { display: none; }
+.ac-item { display: flex; justify-content: space-between; gap: 14px; padding: 3px 10px; font: 13px var(--font-ui); color: #ccc; cursor: pointer; }
+.ac-item.active { background: #094771; color: #fff; }
+.ac-tag { color: #8a8a8a; font-size: 11px; }
