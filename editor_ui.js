@@ -80,6 +80,8 @@
   const STORE_KEY = "dhad.files.v1";
   const fileEntries = [];
   const contents = new Map();
+  const stamps = new Map(); // آخر تعديل محلي لكل ملف (للفصل في تعارض السحابة)
+  const SHARED_CAT = "مشروع مشترك";
   TEMPLATE_GROUPS.forEach((group) => {
     group.items.forEach((item) => {
       const id = group.category + "/" + item.name;
@@ -97,6 +99,7 @@
         }
       });
       Object.entries(raw.edits || {}).forEach(([id, code]) => { if (fileEntries.find((e) => e.id === id)) contents.set(id, code); });
+      Object.entries(raw.stamps || {}).forEach(([id, t]) => stamps.set(id, t));
     } catch (e) { /* التخزين غير متاح */ }
   }
   let saveTimer = null;
@@ -105,21 +108,29 @@
     saveTimer = setTimeout(() => {
       try {
         const edits = {};
-        fileEntries.forEach((e) => { if (contents.get(e.id) !== e.code || e.user) edits[e.id] = contents.get(e.id) || ""; });
+        fileEntries.forEach((e) => { if (e.category === SHARED_CAT) return; if (contents.get(e.id) !== e.code || e.user) edits[e.id] = contents.get(e.id) || ""; });
         const userFiles = fileEntries.filter((e) => e.user).map((e) => ({ id: e.id, name: e.name }));
-        localStorage.setItem(STORE_KEY, JSON.stringify({ userFiles, edits }));
+        const st = {}; stamps.forEach((t, id) => { st[id] = t; });
+        localStorage.setItem(STORE_KEY, JSON.stringify({ userFiles, edits, stamps: st }));
       } catch (e) { /* تجاهل */ }
+      pushToCloud();
     }, 300);
   }
   loadStore();
 
+  function pushToCloud() {
+    if (!window.DhadCloud) return;
+    DhadCloud.schedulePush(fileEntries.filter((e) => e.user).map((e) => ({ name: e.name, content: contents.get(e.id) || "" })));
+  }
+  function touch(id) { stamps.set(id, Date.now()); }
+
   const folderOpen = {};
   function buildTree(pendingNew) {
     fileTreeEl.innerHTML = "";
-    const cats = [USER_CAT].concat(TEMPLATE_GROUPS.map((g) => g.category));
+    const cats = [USER_CAT, SHARED_CAT].concat(TEMPLATE_GROUPS.map((g) => g.category));
     cats.forEach((cat) => {
       const entries = fileEntries.filter((f) => f.category === cat);
-      if (cat === USER_CAT && entries.length === 0 && !pendingNew) return;
+      if ((cat === USER_CAT && entries.length === 0 && !pendingNew) || (cat === SHARED_CAT && entries.length === 0)) return;
       if (folderOpen[cat] === undefined) folderOpen[cat] = true;
       const folder = document.createElement("div");
       folder.className = "tree-folder";
@@ -181,6 +192,7 @@
     while (fileEntries.find((f) => f.id === id)) { id = USER_CAT + "/" + base + "-" + toArabicIndicDigits(String(k)); name = base + "-" + toArabicIndicDigits(String(k)) + ".ضاد"; k++; }
     fileEntries.push({ id, name, code: "", category: USER_CAT, user: true });
     contents.set(id, "");
+    touch(id);
     saveStore();
     buildTree();
     openFile(id, { preview: false });
@@ -201,7 +213,7 @@
   function getOrCreateModel(id) {
     if (modelsById.has(id)) return modelsById.get(id);
     const model = monaco.editor.createModel(contents.get(id) || "", "dhad");
-    model.onDidChangeContent(() => { contents.set(id, model.getValue()); saveStore(); if (id === activeId) pinTab(id); });
+    model.onDidChangeContent(() => { contents.set(id, model.getValue()); touch(id); saveStore(); if (id === activeId) pinTab(id); });
     modelsById.set(id, model);
     return model;
   }
@@ -442,7 +454,7 @@
   function makeFallbackEd() {
     const fb = createFallbackEditor(editorContainer);
     let current = null;
-    fb.onInput(() => { if (current) { contents.set(current, fb.getValue()); saveStore(); pinTab(current); } });
+    fb.onInput(() => { if (current) { contents.set(current, fb.getValue()); touch(current); saveStore(); pinTab(current); } });
     fb.onCursor((c) => { statusPos.textContent = `السطر ${toArabicIndicDigits(String(c.line))}، العمود ${toArabicIndicDigits(String(c.column))}`; });
     editorContainer.addEventListener("keydown", (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); runCode(); }
@@ -477,7 +489,76 @@
     window.__dhad = { get editorKind() { return ed.kind; } };
     openFile(defaultId, { preview: false });
     runCode();
+    initCloud();
   }
+
+  // ---------- السحابة (اختيارية: أي فشل ← يبقى المحرر محليًا) ----------
+  const cloudEl = document.getElementById("status-cloud");
+  const CLOUD_TEXT = { starting: "☁ جارٍ الاتصال…", synced: "☁ متزامن", saving: "☁ جارٍ الحفظ…", offline: "☁ محلي فقط", local: "☁ محلي فقط" };
+  function mergeRemote(rows) {
+    let changedActive = false, added = false;
+    rows.forEach((r) => {
+      let entry = fileEntries.find((e) => e.user && e.name === r.path);
+      if (!entry) {
+        let id = USER_CAT + "/" + r.path.replace(/\.ضاد$/, "");
+        while (fileEntries.find((f) => f.id === id)) id += "-٢";
+        entry = { id, name: r.path, code: "", category: USER_CAT, user: true };
+        fileEntries.push(entry);
+        contents.set(id, r.content); stamps.set(id, Date.parse(r.updated_at) || Date.now());
+        added = true; return;
+      }
+      const local = contents.get(entry.id) || "";
+      if (local === r.content) return;
+      const remoteTime = Date.parse(r.updated_at) || 0;
+      if (local === "" || remoteTime > (stamps.get(entry.id) || 0)) {
+        contents.set(entry.id, r.content); stamps.set(entry.id, remoteTime);
+        const m = modelsById.get(entry.id); if (m && m.getValue() !== r.content) m.setValue(r.content);
+        if (entry.id === activeId) changedActive = true;
+      }
+    });
+    if (added) buildTree();
+    if (changedActive && ed && ed.kind === "fallback") ed.open(activeId);
+    saveStore();
+  }
+  function initCloud() {
+    if (!window.DhadCloud) return;
+    DhadCloud.onStatus((st, detail) => {
+      if (cloudEl) { cloudEl.textContent = CLOUD_TEXT[st] || "☁"; cloudEl.title = detail || ""; }
+    });
+    const slug = new URLSearchParams(location.search).get("s");
+    if (slug) loadSharedView(slug);
+    DhadCloud.start().then(mergeRemote);
+  }
+  function loadSharedView(slug) {
+    DhadCloud.loadShared(slug).then((proj) => {
+      if (!proj || !proj.files) { showPanel("output"); appendLine("رابط المشاركة غير صالح أو منتهي.", "line-error"); return; }
+      proj.files.forEach((f) => {
+        const id = SHARED_CAT + "/" + f.path;
+        if (fileEntries.find((e) => e.id === id)) return;
+        fileEntries.push({ id, name: f.path, code: f.content, category: SHARED_CAT, user: false });
+        contents.set(id, f.content);
+      });
+      buildTree();
+      if (proj.files.length) openFile(SHARED_CAT + "/" + proj.files[0].path, { preview: false });
+      showPanel("output");
+      appendLine("مشروع مشترك: «" + proj.name + "» — للقراءة والتجربة، تعديلاتك لا تُحفظ في مشروع صاحبه.", "line-meta");
+    }).catch((e) => { showPanel("output"); appendLine("تعذّر فتح المشروع المشترك: " + DhadCloud.explain(e), "line-error"); });
+  }
+  function copyText(t) { try { return navigator.clipboard.writeText(t); } catch (e) { return Promise.reject(e); } }
+  function shareProject() {
+    if (!window.DhadCloud) return;
+    showPanel("output");
+    DhadCloud.share().then((link) => {
+      appendLine("رابط مشاركة «ملفاتي» (قراءة فقط): " + link, "line-ok");
+      copyText(link).then(() => appendLine("(نُسخ الرابط إلى الحافظة)", "line-meta"), () => {});
+    }).catch((e) => appendLine("تعذّرت المشاركة: " + DhadCloud.explain(e), "line-error"));
+  }
+  function revokeShares() {
+    showPanel("output");
+    DhadCloud.revokeShares().then(() => appendLine("أُلغيت كل روابط المشاركة لمشروعك.", "line-ok"))
+      .catch((e) => appendLine("تعذّر الإلغاء: " + DhadCloud.explain(e), "line-error"));
+  }
+  function retryCloud() { if (window.DhadCloud) DhadCloud.retry().then(mergeRemote); }
 
   // ---------- القوائم العلوية ----------
   const downloadCurrent = async () => {
@@ -503,7 +584,7 @@
     if (n > 0) ed.reveal(n);
   }
   const MENUS = {
-    "ملف": [["ملف جديد", startNewFile], ["تنزيل الملف الحالي", downloadCurrent], ["إغلاق التبويب", () => activeId && closeTab(activeId)]],
+    "ملف": [["ملف جديد", startNewFile], ["تنزيل الملف الحالي", downloadCurrent], ["مشاركة مشروعي (رابط للقراءة)", shareProject], ["إلغاء روابط المشاركة", revokeShares], ["إعادة محاولة المزامنة", retryCloud], ["إغلاق التبويب", () => activeId && closeTab(activeId)]],
     "تحرير": [["تراجع", () => ed && ed.undo()], ["إعادة", () => ed && ed.redo()]],
     "تحديد": [["تحديد الكل", () => ed && ed.selectAll()]],
     "عرض": [["المستكشف", () => { showSideView("explorer"); setSidebarOpen(true); }], ["بحث", () => { showSideView("search"); setSidebarOpen(true); }],
