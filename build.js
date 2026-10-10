@@ -23,6 +23,7 @@ build(
     __HIGHLIGHTER__: "highlighter.js",
     __AUTOCOMPLETE__: "autocomplete.js",
     __FALLBACK__: "fallback_editor.js",
+    __CLOUD__: "cloud.js",
     __TEMPLATES__: "templates.js",
     __UI__: "editor_ui.js",
   },
