@@ -2,7 +2,8 @@ import { createHash } from "node:crypto";
 import fs from "node:fs";
 const sha = value => createHash("sha256").update(String(value)).digest("hex");
 const clean = s => String(s ?? "").replace(/\r\n?/g,"\n").normalize("NFC");
-const required = (o,k) => typeof o?.[k] === "string" && o[k].trim().length > 0;\nconst RIGHTS = new Set(["public-domain","licensed","permission-required","unknown"]);
+const required = (o,k) => typeof o?.[k] === "string" && o[k].trim().length > 0;
+const RIGHTS = new Set(["public-domain","licensed","permission-required","unknown"]);
 
 export function chunkText(text,{maxChars=2400,overlap=240}={}) {
  const source=clean(text).trim(); if(!source)return [];
