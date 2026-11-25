@@ -17,4 +17,6 @@ jobs:
         with:
           node-version: 20
       - run: node --test nawa/tests/*.test.mjs
+      - run: python -m py_compile nawa/training/finetune_lora.py
+      - run: python -m unittest discover -s nawa/training -p 'test_*.py'
       - run: node nawa/demo.mjs

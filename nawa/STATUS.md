@@ -7,6 +7,7 @@
 - Coordinated research skills: evidence audit, cross-domain linking, counterargument prompts, provenance verification.
 - Arabic-aware source retrieval with citation-preserving BM25 ranking.
 - Multi-domain scholarly rule engine integrated into the task kernel; exposes applicability, defeaters, unavailable evidence, and competing conclusions without silently issuing final verdicts.
+- Guarded LoRA fine-tuning runner with source-work-connected-component splitting, provenance checks, and held-out loss gate.
 - Optional OpenAI-compatible inference adapter.
 - Task-scoped transient state and validated persistent pattern memory.
 - Node test suite and runnable demo.
