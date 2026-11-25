@@ -19,10 +19,10 @@ function run(source) {
 }
 
 const cases = [
-  ["function call", 'دالة مربع(س) { ارجع س * س }\nاطبع(مربع(٧))', "49"],
-  ["Arabic-Indic digits", "متغير س = ١٢٣\nاطبع(س + ٧)", "130"],
+  ["function call", 'دالة مربع(س) { ارجع س * س }\nاطبع(مربع(٧))', "٤٩"],
+  ["Arabic-Indic digits", "متغير س = ١٢٣\nاطبع(س + ٧)", "١٣٠"],
   ["conditional", 'إذا (٣ < ٥) { اطبع("صحيح") } وإلا { اطبع("خطأ") }', "صحيح"],
-  ["for loop", "من_أجل (i من ١ إلى ٤) { اطبع(i) }", "1\n2\n3\n4"],
+  ["for loop", "من_أجل (i من ١ إلى ٤) { اطبع(i) }", "١\n٢\n٣\n٤"],
 ];
 for (const [name, source, expected] of cases) {
   assert.equal(run(source), expected, name);
