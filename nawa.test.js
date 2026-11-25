@@ -1,7 +1,13 @@
 const assert = require("node:assert/strict");
-const { parse } = require("./front.js");
-const { compile } = require("./compiler.js");
+const front = require("./front.js");
+const compiler = require("./compiler.js");
+global.toArabicIndicDigits = front.toArabicIndicDigits;
+global.normalizeDigits = front.normalizeDigits;
+global.parse = front.parse;
+global.compile = compiler.compile;
 const { VM } = require("./vm.js");
+const { parse } = front;
+const { compile } = compiler;
 
 function run(source) {
   const ast = parse(source);
