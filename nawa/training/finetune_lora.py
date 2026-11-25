@@ -44,6 +44,7 @@ def split_examples_by_source_works(examples,seed="nawa-sft-v1"):
 
 def validate_inputs(corpus,examples):
     by_id={x.get("id"):x for x in corpus if x.get("id")}
+    work_ids={x.get("work",{}).get("id") for x in corpus}
     if not corpus: raise ValueError("Corpus is empty: book text must be ingested before training")
     if not examples: raise ValueError("No adjudicated training examples supplied")
     for row in corpus:
