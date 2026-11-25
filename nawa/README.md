@@ -3,6 +3,8 @@
 This is the first executable NAWA layer inside the existing ضاد repository. It is deliberately an engine-first system, not a claim that a new neural foundation model has already been trained.
 
 ## Runtime
+- Arabic-aware BM25 retrieval index that returns exact passage references and edition/page locators.
+- Declarative scholarly rule base with school/method scope, premises, exceptions, evidence dependencies, and explicit conflict sets; integrated as an optional stage in the shared task kernel.
 - Evidence-preserving knowledge objects with source, scope, confidence, and provenance.
 - Deterministic rule engine with explicit premises, exceptions, and defeaters.
 - Coordinated skill/engine registry; skills can call one another without being isolated products.
