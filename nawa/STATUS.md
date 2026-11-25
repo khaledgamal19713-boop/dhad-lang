@@ -5,6 +5,8 @@
 - Evidence graph retaining source, kind, scope, confidence, and relations.
 - Deterministic rules with explicit exceptions/defeaters and priority.
 - Coordinated research skills: evidence audit, cross-domain linking, counterargument prompts, provenance verification.
+- Arabic-aware source retrieval with citation-preserving BM25 ranking.
+- Multi-domain scholarly rule engine integrated into the task kernel; exposes applicability, defeaters, unavailable evidence, and competing conclusions without silently issuing final verdicts.
 - Optional OpenAI-compatible inference adapter.
 - Task-scoped transient state and validated persistent pattern memory.
 - Node test suite and runnable demo.
