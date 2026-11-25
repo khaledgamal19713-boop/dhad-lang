@@ -38,7 +38,8 @@ export function validateCorpus(records,{minChars=80,minOcrConfidence=.85}={}){
  if(r.content){const h=sha(clean(r.content));if(seenContent.has(h))warnings.push({at,code:"duplicate_content",duplicateOf:seenContent.get(h)});else seenContent.set(h,i);}
  if(r.work?.id)workIds.add(r.work.id);
  });
- const rightsCleared=records.every(r=>["public-domain","licensed"].includes(r.work?.licenseStatus)&&required(r.work,"licenseEvidence"));\n return {passed:errors.length===0,trainingEligible:errors.length===0&&rightsCleared,rightsCleared,records:records.length,works:workIds.size,errors,warnings};
+ const rightsCleared=records.every(r=>["public-domain","licensed"].includes(r.work?.licenseStatus)&&required(r.work,"licenseEvidence"));
+ return {passed:errors.length===0,trainingEligible:errors.length===0&&rightsCleared,rightsCleared,records:records.length,works:workIds.size,errors,warnings};
 }
 export function splitByWork(records,{train=.8,validation=.1,test=.1,seed="nawa-v1"}={}){
  if(Math.abs(train+validation+test-1)>1e-9||[train,validation,test].some(x=>x<0))throw new RangeError("Split ratios must sum to 1");
