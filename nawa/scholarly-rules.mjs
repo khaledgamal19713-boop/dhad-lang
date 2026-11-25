@@ -47,9 +47,15 @@ export class ScholarlyRuleBase{
    results.push({ruleId:rule.id,status:failedException?"defeated":"applicable",discipline:rule.discipline,ruleType:rule.ruleType,scope,conclusion:failedException?null:rule.conclusion,epistemicStatus:rule.epistemicStatus,priority:rule.priority,evidenceRefs:rule.evidenceRefs,premises,exception:failedException||null});
   }
   const applicable=results.filter(x=>x.status==="applicable");
-  const groups=new Map();
-  for(const item of applicable){const key=item.conclusion.predicate+"::"+JSON.stringify(item.conclusion.value);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(item);}
-  const conflicts=[...groups.entries()].length>1?[...groups.entries()].map(([key,rules])=>({conclusionKey:key,ruleIds:rules.map(x=>x.ruleId),disciplines:[...new Set(rules.map(x=>x.discipline))]})): [];
+  const predicateGroups=new Map();
+  for(const item of applicable){
+   const predicate=item.conclusion.predicate,valueKey=JSON.stringify(item.conclusion.value);
+   if(!predicateGroups.has(predicate))predicateGroups.set(predicate,new Map());
+   const alternatives=predicateGroups.get(predicate);
+   if(!alternatives.has(valueKey))alternatives.set(valueKey,{value:item.conclusion.value,ruleIds:[],disciplines:[]});
+   const alt=alternatives.get(valueKey);alt.ruleIds.push(item.ruleId);if(!alt.disciplines.includes(item.discipline))alt.disciplines.push(item.discipline);
+  }
+  const conflicts=[...predicateGroups.entries()].filter(([,alts])=>alts.size>1).map(([predicate,alts])=>({predicate,alternatives:[...alts.values()]}));
   return {results,conflicts,summary:{registered:this.rules.size,applicable:applicable.length,defeated:results.filter(x=>x.status==="defeated").length,evidenceUnavailable:results.filter(x=>x.status==="evidence-unavailable").length,conflictingConclusions:conflicts.length,finalVerdict:null,reason:"Rule matches and conflicts are exposed for review; the engine does not silently turn them into a fatwa, hadith grading, or historical attribution."}};
  }
 }
