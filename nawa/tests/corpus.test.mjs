@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {chunkText,ingestText,validateCorpus,splitByWork,validateTrainingExamples} from "../corpus.mjs";
-const work={id:"test-book",title:"كتاب اختبار",author:"مؤلف اختباري",licenseStatus:"public-domain"};
+const work={id:"test-book",title:"كتاب اختبار",author:"مؤلف اختباري",licenseStatus:"public-domain",licenseEvidence:"test fixture rights evidence"};
 test("bibliography and rights status are mandatory",()=>{assert.throws(()=>ingestText({text:"نص",work:{title:"x"}}),/Bibliographic identity/);assert.throws(()=>ingestText({text:"نص",work:{...work,licenseStatus:""}}),/licenseStatus/);});
 test("chunking is deterministic and bounded",()=>{const s=Array.from({length:20},(_,i)=>("فقرة "+i+" وجملة للاختبار. ").repeat(20)).join("\n\n");const a=chunkText(s,{maxChars:400,overlap:40});assert.deepEqual(a,chunkText(s,{maxChars:400,overlap:40}));assert.ok(a.length>1);assert.ok(a.every(x=>x.length<=400));});
 test("ingestion retains exact bibliographic locators",()=>{const rows=ingestText({text:"نص علمي موثق. ".repeat(40),work,locator:{volume:"1",pageStart:"12",pageEnd:"13"},extraction:{method:"ocr",ocrConfidence:.95}});assert.ok(rows.length);assert.equal(rows[0].work.id,work.id);assert.equal(rows[0].locator.pageStart,"12");assert.equal(validateCorpus(rows).passed,true);});
