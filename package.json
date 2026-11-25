@@ -5,6 +5,8 @@
   "description": "ضاد — لغة برمجة عربية موحّدة",
   "scripts": {
     "build": "node build.js",
-    "test": "node nawa.test.js"
+    "test": "node nawa.test.js && node --test nawa/tests/*.test.mjs",
+    "corpus:check": "node nawa/corpus.mjs",
+    "training:gate": "node nawa/training/quality-gate.mjs"
   }
 }
