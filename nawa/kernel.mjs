@@ -88,10 +88,10 @@ export class CompatibleModel {
   }
 }
 export class NawaKernel {
-  constructor({ skills = new SkillRegistry(), rules = new RuleEngine(), memory = new PatternMemory(), model = new CompatibleModel(), evaluator = null } = {}) {
-    this.skills = skills; this.rules = rules; this.memory = memory; this.model = model; this.evaluator = evaluator;
+  constructor({ skills = new SkillRegistry(), rules = new RuleEngine(), scholarlyRules = null, memory = new PatternMemory(), model = new CompatibleModel(), evaluator = null } = {}) {
+    this.skills = skills; this.rules = rules; this.scholarlyRules = scholarlyRules; this.memory = memory; this.model = model; this.evaluator = evaluator;
   }
-  async run(task, { domain = "general", evidence = [], synthesize = true } = {}) {
+  async run(task, { domain = "general", evidence = [], caseData = {}, synthesize = true } = {}) {
     const w = new TaskWorkspace(task);
     try {
       w.log("intake","ok",{domain});
@@ -107,6 +107,11 @@ export class NawaKernel {
       }
       const ruleResults = this.rules.apply({ task, domain, evidence:w.evidence.list(), results:w.results });
       w.results.rule_engine = ruleResults;
+      if (this.scholarlyRules) {
+        const evidenceIds = new Set(w.evidence.list().map(x => x.id));
+        w.results.scholarly_rules = this.scholarlyRules.evaluate({ ...caseData, task, domain }, { evidenceIds, discipline: domain });
+        w.log("scholarly_rules", "ok", { applicable: w.results.scholarly_rules.summary.applicable, conflicts: w.results.scholarly_rules.summary.conflictingConclusions });
+      }
       const unresolved = ruleResults.filter(x => x.status === "error" || x.status === "defeated");
       w.log("rule_engine","ok",{applied:ruleResults.filter(x=>x.status==="applied").length, unresolved:unresolved.length});
       let synthesis = { skipped:true, reason:"Synthesis disabled" };
