@@ -15,3 +15,5 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: node --test nawa/tests/*.test.mjs
+      - run: python -m py_compile nawa/training/finetune_lora.py
+      - run: python -m unittest discover -s nawa/training -p 'test_*.py'
