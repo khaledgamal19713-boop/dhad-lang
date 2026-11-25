@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { NawaKernel, Evidence, EvidenceGraph, RuleEngine, PatternMemory, TaskWorkspace } from "../kernel.mjs";
 import { createCoreSkills } from "../skills.mjs";
+import { ScholarlyRuleBase } from "../scholarly-rules.mjs";
 
 test("evidence graph preserves source and relationships",()=>{
  const g=new EvidenceGraph(); const a=g.add({text:"a",source:"book:A"}); const b=g.add({text:"b",source:"book:B"});
@@ -24,4 +25,13 @@ test("kernel coordinates skills and returns auditable trace",async()=>{
  assert.equal(out.status,"completed_with_scope_limits");
  assert.ok(out.results.evidence_audit); assert.ok(out.results.counterargument_generator); assert.ok(out.trace.length>=5);
  assert.equal(out.synthesis.skipped,true);
+});
+
+test("kernel shares evidence and case context with scholarly rule engine",async()=>{
+ const ruleBase=new ScholarlyRuleBase();
+ ruleBase.register({id:"fiqh-r1",discipline:"fiqh",ruleType:"madhhab-principle",sourceWorkId:"usul-book",epistemicStatus:"zanni",scope:{madhhab:"shafii"},premises:[{field:"case.topic",op:"eq",value:"water"}],conclusion:{predicate:"ruling",value:"review-required"},evidenceRefs:["ev-1"]},{knownEvidence:new Set(["ev-1"])});
+ const k=new NawaKernel({skills:createCoreSkills(),rules:new RuleEngine(),scholarlyRules:ruleBase});
+ const out=await k.run("حلل مسألة الماء",{domain:"fiqh",caseData:{case:{topic:"water"},scope:{madhhab:"shafii"}},evidence:[new Evidence({id:"ev-1",text:"نص تجريبي",source:"fixture"})],synthesize:false});
+ assert.equal(out.results.scholarly_rules.results[0].status,"applicable");
+ assert.equal(out.results.scholarly_rules.summary.finalVerdict,null);
 });
