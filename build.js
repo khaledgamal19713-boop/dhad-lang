@@ -33,6 +33,9 @@ build(
 fs.mkdirSync("dist", { recursive: true });
 fs.copyFileSync("manifest.json", "dist/manifest.json");
 console.log("Copied manifest.json");
+fs.copyFileSync("nawa.html", "dist/nawa.html");
+fs.copyFileSync("nawa-core.js", "dist/nawa-core.js");
+console.log("Copied Nawa app and core");
 
 build(
   "guide_shell.html",
