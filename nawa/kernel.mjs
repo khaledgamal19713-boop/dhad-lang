@@ -91,7 +91,7 @@ export class NawaKernel {
   constructor({ skills = new SkillRegistry(), rules = new RuleEngine(), memory = new PatternMemory(), model = new CompatibleModel(), evaluator = null } = {}) {
     this.skills = skills; this.rules = rules; this.memory = memory; this.model = model; this.evaluator = evaluator;
   }
-  async run(task, { domain = "general", evidence = [], synthesize = true } = {}) {
+  async run(task, { domain = "general", evidence = [], caseData = {}, synthesize = true } = {}) {
     const w = new TaskWorkspace(task);
     try {
       w.log("intake","ok",{domain});
