@@ -25,20 +25,23 @@ export function ingestText({text,work,locator={},extraction={},chunk={}}){
  extraction:{method:extraction.method??"text",ocrConfidence:extraction.ocrConfidence??null,reviewed:extraction.reviewed===true},
  content,contentHash:sha(content),sequence:index}));
 }
-export function validateCorpus(records,{minChars=80,minOcrConfidence=.85}={}){
+export function validateCorpus(records,{minChars=80,minOcrConfidence=.85}={}) {
  const errors=[],warnings=[],seenIds=new Set(),seenContent=new Map(),workIds=new Set();
- records.forEach((r,i)=>{const at="record["+i+"]";
- for(const k of ["id","content","contentHash"])if(!required(r,k))errors.push({at,code:"missing_"+k});
- if(!r.work||!required(r.work.id)||!required(r.work.title)||!required(r.work.author))errors.push({at,code:"missing_bibliography"});
- if(!required(r.work?.licenseStatus))errors.push({at,code:"missing_license_status"});
- if(["unknown","permission-required"].includes(r.work?.licenseStatus))warnings.push({at,code:"rights_review_required",workId:r.work.id});
- if(typeof r.content==="string"&&r.content.trim().length<minChars)warnings.push({at,code:"short_chunk",chars:r.content.trim().length});
- if(r.extraction?.method==="ocr"&&(typeof r.extraction.ocrConfidence!=="number"||r.extraction.ocrConfidence<minOcrConfidence)&&!r.extraction.reviewed)errors.push({at,code:"ocr_below_threshold_without_human_review"});
- if(r.id&&seenIds.has(r.id))errors.push({at,code:"duplicate_id"});else if(r.id)seenIds.add(r.id);
- if(r.content){const h=sha(clean(r.content));if(seenContent.has(h))warnings.push({at,code:"duplicate_content",duplicateOf:seenContent.get(h)});else seenContent.set(h,i);}
- if(r.work?.id)workIds.add(r.work.id);
+ records.forEach((r,i)=>{
+  const at="record["+i+"]";
+  for(const k of ["id","content","contentHash"]) if(!required(r,k)) errors.push({at,code:"missing_"+k});
+  if(!r.work||!required(r.work,"id")||!required(r.work,"title")||!required(r.work,"author")) errors.push({at,code:"missing_bibliography"});
+  if(!required(r.work,"licenseStatus")||!new Set(["public-domain","licensed","permission-required","unknown"]).has(r.work.licenseStatus)) errors.push({at,code:"invalid_license_status"});
+  if(["unknown","permission-required"].includes(r.work?.licenseStatus)) warnings.push({at,code:"rights_review_required",workId:r.work.id});
+  if(["public-domain","licensed"].includes(r.work?.licenseStatus)&&!required(r.work,"licenseEvidence")) errors.push({at,code:"missing_rights_evidence"});
+  if(typeof r.content==="string"&&required(r,"contentHash")&&r.contentHash!==sha(clean(r.content))) errors.push({at,code:"content_hash_mismatch"});
+  if(typeof r.content==="string"&&r.content.trim().length<minChars) warnings.push({at,code:"short_chunk",chars:r.content.trim().length});
+  if(r.extraction?.method==="ocr"&&(typeof r.extraction.ocrConfidence!=="number"||r.extraction.ocrConfidence<minOcrConfidence)&&!r.extraction.reviewed) errors.push({at,code:"ocr_below_threshold_without_human_review"});
+  if(r.id&&seenIds.has(r.id)) errors.push({at,code:"duplicate_id"}); else if(r.id) seenIds.add(r.id);
+  if(r.content){const h=sha(clean(r.content));if(seenContent.has(h))warnings.push({at,code:"duplicate_content",duplicateOf:seenContent.get(h)});else seenContent.set(h,i);}
+  if(r.work?.id) workIds.add(r.work.id);
  });
- const rightsCleared=records.every(r=>["public-domain","licensed"].includes(r.work?.licenseStatus)&&required(r.work,"licenseEvidence"));
+ const rightsCleared=records.length>0&&records.every(r=>["public-domain","licensed"].includes(r.work?.licenseStatus)&&required(r.work,"licenseEvidence"));
  return {passed:errors.length===0,trainingEligible:errors.length===0&&rightsCleared,rightsCleared,records:records.length,works:workIds.size,errors,warnings};
 }
 export function splitByWork(records,{train=.8,validation=.1,test=.1,seed="nawa-v1"}={}){
