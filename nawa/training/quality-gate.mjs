@@ -1,0 +1,4 @@
+import {readJsonl,validateCorpus,validateTrainingExamples} from "../corpus.mjs";
+const [,,corpusPath,examplesPath]=process.argv;
+if(!corpusPath){console.error("Usage: node nawa/training/quality-gate.mjs corpus.jsonl examples.jsonl");process.exit(2);}
+try{const corpus=readJsonl(corpusPath),corpusReport=validateCorpus(corpus),ids=new Set(corpus.map(x=>x.id)),examples=examplesPath?readJsonl(examplesPath):[],exampleReport=examplesPath?validateTrainingExamples(examples,ids):null;const report={corpus:corpusReport,trainingExamples:exampleReport,readyForTraining:corpusReport.passed&&!!exampleReport?.passed&&examples.length>0};console.log(JSON.stringify(report,null,2));if(!report.readyForTraining)process.exitCode=1;}catch(e){console.error(e.stack||e.message);process.exitCode=1;}
