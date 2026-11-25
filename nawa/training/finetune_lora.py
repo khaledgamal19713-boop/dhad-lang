@@ -61,8 +61,12 @@ def validate_inputs(corpus,examples):
             raise ValueError(f"Non-expert-reviewed target blocked: {row.get('id')}")
         if not row.get("evidenceRefs") or not row.get("sourceWorkIds"):
             raise ValueError(f"Training example lacks provenance: {row.get('id')}")
+        for work_id in row["sourceWorkIds"]:
+            if work_id not in work_ids: raise ValueError(f"Unknown source work {work_id} in {row.get('id')}")
         for ref in row["evidenceRefs"]:
             if ref not in by_id: raise ValueError(f"Unknown evidence chunk {ref} in {row.get('id')}")
+            if by_id[ref].get("work",{}).get("id") not in row["sourceWorkIds"]:
+                raise ValueError(f"Evidence chunk {ref} is not listed in sourceWorkIds for {row.get('id')}")
         if row["domain"]=="fiqh" and not row.get("madhhabScope"):
             raise ValueError(f"Fiqh example lacks madhhabScope: {row.get('id')}")
         if row["domain"]=="hadith" and not row.get("hadithMethodScope"):
