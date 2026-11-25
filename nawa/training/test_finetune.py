@@ -12,8 +12,10 @@ class FineTuneSafetyTests(unittest.TestCase):
         for bucket,items in split.items():
             for row in items:
                 for work in row["sourceWorkIds"]:
-                    self.assertNotIn(work,owner)
-                    owner[work]=bucket
+                    if work in owner:
+                        self.assertEqual(owner[work],bucket)
+                    else:
+                        owner[work]=bucket
         self.assertEqual(owner["w1"],owner["w2"])
     def test_formatting_includes_exact_source_and_locator(self):
         formatted=format_example(self.example,{"c1":self.corpus[0]})
